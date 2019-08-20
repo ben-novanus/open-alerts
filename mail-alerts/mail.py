@@ -24,7 +24,6 @@ class Email:
         except:
             print("Failed to connect to server.")
 
-        deleted = 0
         alerts = []
 
         try:
@@ -45,11 +44,10 @@ class Email:
 
         except:
             pop3.rset()
-            deleted = 0
             print("ERROR DURING PROCESSING - %d messages deleted. %d messages left on server" %
-                  (deleted, msgCount - deleted))
+                  (len(alerts), msgCount - len(alerts)))
         finally:
             pop3.quit()
-            print("%d messages deleted. %d messages left on server" %
-                  (deleted, msgCount - deleted))
+            print("%d messages processed and deleted. %d messages left on server" %
+                  (len(alerts), msgCount - len(alerts)))
             return alerts
