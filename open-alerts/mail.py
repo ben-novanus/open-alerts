@@ -1,5 +1,5 @@
 import poplib
-from email.parser import BytesParser, Parser
+from email.parser import Parser
 from email.policy import default
 from models.alert import Alert
 
@@ -23,6 +23,7 @@ class Email:
             pop3.pass_(self.password)
         except:
             print("Failed to connect to server.")
+            return
 
         alerts = []
 
