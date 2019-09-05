@@ -1,8 +1,10 @@
+import logging
 from exchanges.deribit import Deribit
 
 
 class Account:
     def __init__(self, name, type, key, secret):
+        self.logger = logging.getLogger('main')
         self.name = name
         self.type = type
         self.key = key
@@ -10,18 +12,18 @@ class Account:
 
     def processAlert(self, alert):
         if self.type == "deribit":
-            exchange = Deribit()
+            exchange = Deribit(self.key, self.secret)
             exchange.processAlert(alert)
         elif self.type == "deribit-test":
-            exchange = Deribit(True)
+            exchange = Deribit(self.key, self.secret, True)
             exchange.processAlert(alert)
         elif self.type == "bitmex":
-            print("Exchange " + self.type + " not yet implemented")
+            self.logger.error("Exchange %s not yet implemented", self.type)
         elif self.type == "bitmex-test":
-            print("Exchange " + self.type + " not yet implemented")
+            self.logger.error("Exchange %s not yet implemented", self.type)
         elif self.type == "bybit":
-            print("Exchange " + self.type + " not yet implemented")
+            self.logger.error("Exchange %s not yet implemented", self.type)
         elif self.type == "bybit-test":
-            print("Exchange " + self.type + " not yet implemented")
+            self.logger.error("Exchange %s not yet implemented", self.type)
         else:
-            print("Exchange " + self.type + " not yet implemented")
+            self.logger.error("Exchange %s not valid", self.type)

@@ -21,8 +21,7 @@ class Deribit(Exchange):
 
     def processAlert(self, alert):
         if not alert.blocks:
-            self.logger.warning("No blocks found for Alert. \
-Blocks are denoted with a bracketed number i.e. [1]")
+            self.logger.warning("No blocks found for alert")
 
         url = "wss://" + self.url + "/ws/api/v2"
 
@@ -315,8 +314,8 @@ a valid order type for Deribit, use a limit order instead for taking profit")
                 response = await websocket.recv()
                 j = json.loads(response)
                 if j.get("error"):
-                    self.logger.error("Error canceling order with id: " +
-                                      order.get("order_id"), j)
+                    self.logger.error("Error canceling order with id: %s",
+                                      order.get("order_id"))
 
     async def closePosition(self, websocket, ticker, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel

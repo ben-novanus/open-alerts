@@ -1,23 +1,28 @@
 import re
+import logging
 from .block import Block
 
 
 class Alert:
     def __init__(self, body):
+        self.logger = logging.getLogger("main")
         self.exchange = ""
-        self.account = []
+        self.account = ""
         self.instrument = ""
-        self.blocks = []
         self.currency = ""
+        self.blocks = []
 
         self.parseBody(body)
 
     def parseBody(self, body):
         # TODO add autoview syntax parsing
-        self.parseGoatAlert(body)
+        if "account =" in body or "account=" in body:
+            self.parseGoatAlert(body)
+        elif "a =" in body or "a=" in body:
+            self.parseAutoViewAlert(body)
 
     def parseGoatAlert(self, body):
-        lines = body.splitlines()
+        lines = body.split('\\n')
         currentBlock = 0
 
         blockFields = [attr for attr in dir(Block) if not callable(
@@ -42,13 +47,22 @@ class Alert:
 
                     setattr(block, key, val)
                 elif key == "account":
-                    self.account = val.replace(' ', '').split(',')
+                    self.account = val.lower()
                 elif key == "exchange":
                     self.exchange = val.lower()
-                elif key == "currency":
-                    self.currency = val
                 elif key == "instrument":
                     self.instrument = val
+                    match = re.match('^([A-Z]{3})-.+', val)
+                    if match:
+                        self.currency = match[1]
+                    else:
+                        self.logger.error("Unable to parse currency from \
+instrument: %s", val)
 
             elif match_num:
                 currentBlock = int(match_num[1])
+
+    def parseAutoViewAlert(self, body):
+        self.error.error("Autoview syntax is not supported yet")
+        # lines = body.split('\\n')
+        # currentBlock = 0

@@ -1,22 +1,38 @@
 from configparser import ConfigParser
 from functools import partial
 from http.server import HTTPServer
+from socketserver import ThreadingMixIn
 import logging
+import sys
 from handler import AlertRequestHandler
 from models.account import Account
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
+
+
 def main():
+    print("\nStarting up")
+
     config = ConfigParser(strict=False)
     config.read('config.ini')
 
     logger = logging.getLogger("main")
     logging.basicConfig(filename='main.log',
                         filemode='w',
-                        format='%(name)s - %(levelname)s - %(message)s')
+                        format='%(asctime)s - %(name)s - \
+%(levelname)s - %(message)s')
     logger.setLevel(logging.INFO)
 
-    print("starting handler")
+    def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        logger.critical("Unhandled exception", exc_info=(
+            exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_unhandled_exception
 
     # Configure the handler
     valid_ips = ["52.89.214.238",
@@ -24,6 +40,7 @@ def main():
                  "54.218.53.128",
                  "52.32.178.7"]
 
+    logger.info("parsing config")
     accounts = {}
     for section_name in config.sections():
         if (section_name.startswith("Account") and
@@ -37,12 +54,18 @@ def main():
                               config.get(section_name, 'Secret'))
             accounts[account.name] = account
 
+    logger.info("starting handler")
     handler = partial(AlertRequestHandler, valid_ips, accounts)
     server_address = (config.get('Settings', 'Bind'),
                       config.getint('Settings', 'Port'))
 
-    httpd = HTTPServer(server_address, handler)
-    httpd.serve_forever()
+    httpd = ThreadedHTTPServer(server_address, handler)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    httpd.server_close()
+    print("Shutting Down")
 
 
 if __name__ == "__main__":
