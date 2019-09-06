@@ -62,7 +62,7 @@ class Deribit(Exchange):
 
                     for block in alert.blocks:
                         if block:
-                            self.logger.info("Executing Alert Block")
+                            self.logger.debug("Executing Alert Block")
                             if block.wait:
                                 time.sleep(int(block.wait))
 
