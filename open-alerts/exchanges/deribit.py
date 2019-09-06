@@ -84,7 +84,7 @@ class Deribit(Exchange):
                     # close the websocket
                     await websocket.close()
 
-        asyncio.get_event_loop().run_until_complete(call_api())
+        asyncio.new_event_loop().run_until_complete(call_api())
 
     def getJsonMessage(self, method, params):
         return json.dumps({

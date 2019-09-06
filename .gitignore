@@ -104,4 +104,4 @@ venv.bak/
 .mypy_cache/
 
 # config file
-mail-alerts/config.ini
+config.ini
