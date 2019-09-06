@@ -1,5 +1,19 @@
 # Open-Alerts
 
+This is BETA software for testing! I am not responsible for any losses incurred.
+
+This is a daemon that accepts alerts from tradingview using webhooks and sends commands to the proper exchange using GOAT Alerts syntax (Soon to support AutoView syntax)
+
+### Requirements
+Python 3.5+
+Python websockets
+
+### Setup
+Ubuntu 18.04:
+```sh
+sudo apt-get install python3-websockets
+```
+
 ### nginx
 It is recommended to use nginx with a proxy pass for open-alerts. Once this is setup up is easy to use certbot to secure the server with ssl.
 Here is an example proxy pass config:
@@ -39,4 +53,20 @@ server {
         proxy_pass http://localhost:8002;
     }
 }
+```
+
+### systemd
+Here is an example of a startup script
+```
+[Unit]
+Description=Open-Alerts Daemon
+After= network.target
+
+[Service]
+WorkingDirectory=/root/open-alerts/open-alerts
+ExecStart=/usr/bin/python3 main.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
 ```

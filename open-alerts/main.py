@@ -23,10 +23,7 @@ def main():
                         filemode="w",
                         format="%(asctime)s - %(name)s - \
 %(levelname)s - %(message)s")
-    if config.has_option("Settings", "Logging"):
-        logger.setLevel(config.get("Settings", "Logging"))
-    else:
-        logger.setLevel(logging.ERROR)
+    logger.setLevel(config.get("Settings", "Logging"))
 
     def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):

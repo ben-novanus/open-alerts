@@ -17,7 +17,7 @@ class Deribit(Exchange):
         if self.test:
             self.url = "test.deribit.com"
         else:
-            self.url = "deribit.com"
+            self.url = "www.deribit.com"
 
     def processAlert(self, alert):
         if not alert.blocks:
