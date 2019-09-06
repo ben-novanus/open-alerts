@@ -16,14 +16,17 @@ def main():
     print("\nStarting up")
 
     config = ConfigParser(strict=False)
-    config.read('config.ini')
+    config.read("config.ini")
 
     logger = logging.getLogger("main")
-    logging.basicConfig(filename='main.log',
-                        filemode='w',
-                        format='%(asctime)s - %(name)s - \
-%(levelname)s - %(message)s')
-    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(filename="main.log",
+                        filemode="w",
+                        format="%(asctime)s - %(name)s - \
+%(levelname)s - %(message)s")
+    if config.get("Settings", "Logging"):
+        logger.setLevel(config.get("Settings", "Logging"))
+    else:
+        logger.setLevel(logging.ERROR)
 
     def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
@@ -45,20 +48,20 @@ def main():
     accounts = {}
     for section_name in config.sections():
         if (section_name.startswith("Account") and
-            config.get(section_name, 'Name') and
-            config.get(section_name, 'Type') and
-            config.get(section_name, 'Key') and
-                config.get(section_name, 'Secret')):
-            account = Account(config.get(section_name, 'Name'),
-                              config.get(section_name, 'Type'),
-                              config.get(section_name, 'Key'),
-                              config.get(section_name, 'Secret'))
+            config.get(section_name, "Name") and
+            config.get(section_name, "Type") and
+            config.get(section_name, "Key") and
+                config.get(section_name, "Secret")):
+            account = Account(config.get(section_name, "Name"),
+                              config.get(section_name, "Type"),
+                              config.get(section_name, "Key"),
+                              config.get(section_name, "Secret"))
             accounts[account.name] = account
 
     logger.info("starting handler")
     handler = partial(AlertRequestHandler, valid_ips, accounts)
-    server_address = (config.get('Settings', 'Bind'),
-                      config.getint('Settings', 'Port'))
+    server_address = (config.get("Settings", "Bind"),
+                      config.getint("Settings", "Port"))
 
     httpd = ThreadedHTTPServer(server_address, handler)
     try:
