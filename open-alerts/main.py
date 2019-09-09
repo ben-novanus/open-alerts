@@ -3,9 +3,33 @@ from functools import partial
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 import logging
+from pytz import timezone
+from datetime import datetime
 import sys
 from handler import AlertRequestHandler
 from models.account import Account
+
+
+class TimeZoneFormatter(logging.Formatter):
+    def __init__(self, timezone, *args, **keywords):
+        self.timezone = timezone
+        super().__init__(*args, **keywords)
+
+    def converter(self, timestamp):
+        dt = datetime.fromtimestamp(timestamp)
+        tz = timezone(self.timezone)
+        return dt.astimezone(tz)
+
+    def formatTime(self, record, datefmt=None):
+        dt = self.converter(record.created)
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            try:
+                s = dt.isoformat(timespec="milliseconds")
+            except TypeError:
+                s = dt.isoformat()
+        return s
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -18,12 +42,28 @@ def main():
     config = ConfigParser(strict=False)
     config.read("config.ini")
 
+    # Setup the logger
     logger = logging.getLogger("main")
-    logging.basicConfig(filename="main.log",
-                        filemode="w",
-                        format="%(asctime)s - %(name)s - \
-%(levelname)s - %(message)s")
-    logger.setLevel(config.get("Settings", "Logging"))
+    logger.setLevel(config.get("Logging", "Level"))
+
+    fh = logging.FileHandler(filename=config.get("Logging", "File"), mode="a")
+
+    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    dateFormat = "%Y-%m-%d %H:%M:%S"
+    if config.has_option("Logging", "TimeZone"):
+        formatter = TimeZoneFormatter(
+            config.get("Logging", "TimeZone"),
+            fmt=format,
+            datefmt=dateFormat
+        )
+    else:
+        formatter = logging.Formatter(
+            fmt=format,
+            datefmt=dateFormat
+        )
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
 
     def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
@@ -33,6 +73,8 @@ def main():
             exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_unhandled_exception
+
+    logger.info("Starting up")
 
     # Configure the handler
     valid_ips = ["127.0.0.1",
@@ -57,8 +99,8 @@ def main():
 
     logger.info("starting handler")
     handler = partial(AlertRequestHandler, valid_ips, accounts)
-    server_address = (config.get("Settings", "Bind"),
-                      config.getint("Settings", "Port"))
+    server_address = (config.get("Server", "Bind"),
+                      config.getint("Server", "Port"))
 
     httpd = ThreadedHTTPServer(server_address, handler)
     try:
@@ -66,6 +108,8 @@ def main():
     except KeyboardInterrupt:
         pass
     httpd.server_close()
+    logger.info("Shutting Down")
+
     print("Shutting Down")
 
 

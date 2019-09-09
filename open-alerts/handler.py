@@ -30,11 +30,11 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                     if alert.account in self.accounts.keys():
                         self.accounts.get(alert.account).processAlert(alert)
                     else:
-                        self.logger.error("Unable to find account with \
-name: %s", alert.account)
+                        self.logger.error(("Unable to find account with "
+                                           "name: %s"), alert.account)
                 else:
-                    self.logger.error("Unable to parse alert \
-with body: %s", body)
+                    self.logger.error(("Unable to parse alert "
+                                       "with body: %s"), body)
 
                 # self.send_response(200)
             else:

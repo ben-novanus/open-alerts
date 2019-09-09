@@ -54,8 +54,8 @@ class Alert:
                     if match:
                         self.currency = match[1]
                     else:
-                        self.logger.error("Unable to parse currency from \
-instrument: %s", val)
+                        self.logger.error(("Unable to parse currency from "
+                                           "instrument: %s"), val)
 
             elif match_num:
                 currentBlock = int(match_num[1])

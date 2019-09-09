@@ -22,6 +22,8 @@ class Deribit(Exchange):
     def processAlert(self, alert):
         if not alert.blocks:
             self.logger.warning("No blocks found for alert")
+        else:
+            self.logger.info("Processing alert for account: %s", alert.account)
 
         url = "wss://" + self.url + "/ws/api/v2"
 
@@ -62,20 +64,25 @@ class Deribit(Exchange):
 
                     for block in alert.blocks:
                         if block:
-                            self.logger.debug("Executing Alert Block")
                             if block.wait:
                                 time.sleep(int(block.wait))
 
                             if block.cancel == "ORDER":
+                                self.logger.info("Executing Block: %s",
+                                                 "Cancel Order")
                                 await self.cancelOrders(websocket,
                                                         alert,
                                                         block)
                             elif block.close == "POSITION":
+                                self.logger.info("Executing Block: %s",
+                                                 "Close Position")
                                 await self.closePosition(websocket,
                                                          ticker,
                                                          alert,
                                                          block)
                             elif block.order:
+                                self.logger.info("Executing Block: %s",
+                                                 "Trade")
                                 await self.trade(websocket,
                                                  ticker,
                                                  alert,
@@ -209,13 +216,15 @@ class Deribit(Exchange):
                     params["trigger"] = "mark_price"
 
             elif block.order == "TAKE_PROFIT_MARKET":
-                self.logger.warning("'take_profit_market' is not \
-a valid order type for Deribit, use a limit order instead for taking profit")
+                self.logger.warning(("'take_profit_market' is not valid order "
+                                     "type for Deribit, use a limit order "
+                                     "instead for taking profit"))
                 return
 
             elif block.order == "TAKE_PROFIT_LIMIT":
-                self.logger.warning("'take_profit_limit' is not \
-a valid order type for Deribit, use a limit order instead for taking profit")
+                self.logger.warning(("'take_profit_limit' is not valid order "
+                                     "type for Deribit, use a limit order "
+                                     "instead for taking profit"))
                 return
 
             return self.getJsonMessage(method, params)
@@ -281,18 +290,20 @@ a valid order type for Deribit, use a limit order instead for taking profit")
                 params["trigger"] = "mark_price"
 
         elif block.order == "TRAILING_STOP":
-            self.logger.warning("'trailing_stop' is not \
-a valid order type for Deribit")
+            self.logger.warning(("'trailing_stop' is not "
+                                 "a valid order type for Deribit"))
             return
 
         elif block.order == "TAKE_PROFIT_MARKET":
-            self.logger.warning("'take_profit_market' is not \
-a valid order type for Deribit, use a limit order instead for taking profit")
+            self.logger.warning(("'take_profit_market' is not valid order "
+                                 "type for Deribit, use a limit order "
+                                 "instead for taking profit"))
             return
 
         elif block.order == "TAKE_PROFIT_LIMIT":
-            self.logger.warning("'take_profit_limit' is not \
-a valid order type for Deribit, use a limit order instead for taking profit")
+            self.logger.warning(("'take_profit_limit' is not valid order "
+                                 "type for Deribit, use a limit order "
+                                 "instead for taking profit"))
             return
 
         return self.getJsonMessage(method, params)
@@ -314,8 +325,7 @@ a valid order type for Deribit, use a limit order instead for taking profit")
                 response = await websocket.recv()
                 j = json.loads(response)
                 if j.get("error"):
-                    self.logger.error("Error canceling order with id: %s",
-                                      order.get("order_id"))
+                    self.logger.error("Error canceling order: %s", j)
 
     async def closePosition(self, websocket, ticker, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel
@@ -326,11 +336,14 @@ a valid order type for Deribit, use a limit order instead for taking profit")
             position = j.get("result")
 
             if position.get("trades") or position.get("order"):
-                self.logger.warn("Previous trade/order not completed, \
-waiting 1 second and trying again. Attempt " + str(i + 1) + " of 5")
+                self.logger.warn(("Previous trade/order not completed, "
+                                  "waiting 1 second and trying again. "
+                                  "Attempt %s of 5"), str(i + 1))
                 if i == 4:
-                    self.logger.error("Unable to close position, \
-previous trade/order could not completed, 5 attempts were made")
+                    self.logger.error(("Unable to close position, "
+                                       "previous trade/order was not "
+                                       "completed in time. "
+                                       "5 attempts were made"))
                 else:
                     time.sleep(1)
             else:
@@ -342,7 +355,7 @@ previous trade/order could not completed, 5 attempts were made")
             response = await websocket.recv()
             j = json.loads(response)
             if j.get("error"):
-                self.logger.error("Error sending close position", j)
+                self.logger.error("Error sending close position: %s", j)
 
     async def trade(self, websocket, ticker, alert, block):
         tradeJson = self.getTradeJson(ticker, alert, block)
@@ -351,4 +364,4 @@ previous trade/order could not completed, 5 attempts were made")
             response = await websocket.recv()
             j = json.loads(response)
             if j.get("error"):
-                self.logger.error("Error sending trade", j)
+                self.logger.error("Error sending trade: %s", j)
