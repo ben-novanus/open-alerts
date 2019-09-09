@@ -21,7 +21,7 @@ class Deribit(Exchange):
 
     def processAlert(self, alert):
         if not alert.blocks:
-            self.logger.warning("No blocks found for alert")
+            self.logger.error("No blocks found for alert")
         else:
             self.logger.info("Processing alert for account: %s", alert.account)
 
@@ -141,6 +141,7 @@ class Deribit(Exchange):
         params = {
             "order_id": order_id
         }
+        self.logger.debug("Cancel Order Params: %s", params)
         return self.getJsonMessage("private/cancel", params)
 
     def getPositionJson(self, instrument):
@@ -151,6 +152,7 @@ class Deribit(Exchange):
 
     def getClosePositionJson(self, ticker, block, position):
         if not position:
+            self.logger.debug("No position returned")
             return
 
         if position.get("size") and \
@@ -227,7 +229,12 @@ class Deribit(Exchange):
                                      "instead for taking profit"))
                 return
 
+            self.logger.debug("Close Position method: %s, Params: %s", params)
             return self.getJsonMessage(method, params)
+
+        self.logger.debug("Not in any valid position. Size: %s, side: %s",
+                          position.get("size"),
+                          block.side)
 
     def getTradeJson(self, ticker, alert, block):
         method = "private/buy" if self.isBid(block.side) else "private/sell"
@@ -306,6 +313,7 @@ class Deribit(Exchange):
                                  "instead for taking profit"))
             return
 
+        self.logger.debug("Trade method: %s, Params: %s", params)
         return self.getJsonMessage(method, params)
 
     async def cancelOrders(self, websocket, alert, block):
@@ -325,7 +333,8 @@ class Deribit(Exchange):
                 response = await websocket.recv()
                 j = json.loads(response)
                 if j.get("error"):
-                    self.logger.error("Error canceling order: %s", j)
+                    self.logger.error(
+                        "Error received after canceling order: %s", j)
 
     async def closePosition(self, websocket, ticker, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel
@@ -355,7 +364,8 @@ class Deribit(Exchange):
             response = await websocket.recv()
             j = json.loads(response)
             if j.get("error"):
-                self.logger.error("Error sending close position: %s", j)
+                self.logger.error(
+                    "Error received after sending close position: %s", j)
 
     async def trade(self, websocket, ticker, alert, block):
         tradeJson = self.getTradeJson(ticker, alert, block)
@@ -364,4 +374,4 @@ class Deribit(Exchange):
             response = await websocket.recv()
             j = json.loads(response)
             if j.get("error"):
-                self.logger.error("Error sending trade: %s", j)
+                self.logger.error("Error received after sending trade: %s", j)

@@ -2,7 +2,7 @@
 
 This is BETA software for testing! I am not responsible for any losses incurred.
 
-This is a daemon that accepts alerts from tradingview using webhooks and sends commands to the proper exchange using GOAT Alerts syntax (Soon to support AutoView syntax)
+This is a daemon that accepts alerts from tradingview using webhooks and sends commands to an exchange using GOAT Alerts syntax (Soon to support AutoView syntax)
 
 ### Requirements
 Python 3.5+
@@ -65,6 +65,7 @@ After= network.target
 [Service]
 WorkingDirectory=/root/open-alerts/open-alerts
 ExecStart=/usr/bin/python3 main.py
+RestartSec=3
 Restart=on-failure
 
 [Install]
