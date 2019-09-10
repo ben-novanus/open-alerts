@@ -229,7 +229,8 @@ class Deribit(Exchange):
                                      "instead for taking profit"))
                 return
 
-            self.logger.debug("Close Position method: %s, Params: %s", params)
+            self.logger.debug("Close Position method: %s, Params: %s",
+                              method, params)
             return self.getJsonMessage(method, params)
 
         self.logger.debug("Not in any valid position. Size: %s, side: %s",
@@ -313,7 +314,7 @@ class Deribit(Exchange):
                                  "instead for taking profit"))
             return
 
-        self.logger.debug("Trade method: %s, Params: %s", params)
+        self.logger.debug("Trade method: %s, Params: %s", method, params)
         return self.getJsonMessage(method, params)
 
     async def cancelOrders(self, websocket, alert, block):
