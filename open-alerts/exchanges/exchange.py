@@ -76,3 +76,16 @@ class Exchange:
             return balance * (diff / 100)
         else:
             return float(quantity)
+
+    def logResponse(self, requestName, json):
+        self.isErrorResponse(requestName, json)
+
+    def isErrorResponse(self, requestName, json):
+        if json.get("error"):
+            self.logger.error("Error received after sending %s: %s",
+                              requestName, json)
+            return True
+        else:
+            self.logger.debug(
+                "Response received after sending %s: %s", requestName, json)
+            return False

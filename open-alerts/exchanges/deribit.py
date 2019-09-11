@@ -35,13 +35,17 @@ class Deribit(Exchange):
                     response = await websocket.recv()
                     j = json.loads(response)
                     if j.get("error"):
-                        self.logger.error("Unable to authenticate", j)
+                        self.logger.error(
+                            ("Error received after sending authentication "
+                             "request: %s"), j)
                         return
 
                     # get the ticker
                     await websocket.send(self.getTickerJson(alert.instrument))
                     response = await websocket.recv()
                     j = json.loads(response)
+                    if self.isErrorResponse("ticker request", j):
+                        return
                     ticker = j.get("result")
 
                     # look up the tick size based on instrument
@@ -49,6 +53,8 @@ class Deribit(Exchange):
                         alert.currency))
                     response = await websocket.recv()
                     j = json.loads(response)
+                    if self.isErrorResponse("instrument request", j):
+                        return
                     ticker["tick_size"] = next((item for item in
                                                 j.get("result")
                                                 if item['instrument_name'] ==
@@ -60,6 +66,8 @@ class Deribit(Exchange):
                         alert.currency))
                     response = await websocket.recv()
                     j = json.loads(response)
+                    if self.isErrorResponse("account info request", j):
+                        return
                     accountInfo = j.get("result")
 
                     for block in alert.blocks:
@@ -334,6 +342,8 @@ class Deribit(Exchange):
         await websocket.send(self.getOpenOrdersJson(alert.instrument))
         response = await websocket.recv()
         j = json.loads(response)
+        if self.isErrorResponse("open order request", j):
+            return
         orders = j.get("result")
 
         for order in orders:
@@ -346,12 +356,7 @@ class Deribit(Exchange):
                     self.getCancelJson(order.get("order_id")))
                 response = await websocket.recv()
                 j = json.loads(response)
-                if j.get("error"):
-                    self.logger.error(
-                        "Error received after canceling order: %s", j)
-                else:
-                    self.logger.debug(
-                        "Response received after canceling order: %s", j)
+                self.logResponse("canceling order", j)
 
     async def closePosition(self, websocket, ticker, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel
@@ -380,21 +385,12 @@ class Deribit(Exchange):
             await websocket.send(closeJson)
             response = await websocket.recv()
             j = json.loads(response)
-            if j.get("error"):
-                self.logger.error(
-                    "Error received after sending close position: %s", j)
-            else:
-                self.logger.debug(
-                    "Response received after sending close position: %s", j)
+            self.logResponse("close position", j)
 
-    async def trade(self, websocket, ticker, alert, block):
-        tradeJson = self.getTradeJson(ticker, alert, block)
+    async def trade(self, websocket, ticker, accountInfo, alert, block):
+        tradeJson = self.getTradeJson(ticker, accountInfo, alert, block)
         if tradeJson:
             await websocket.send(tradeJson)
             response = await websocket.recv()
             j = json.loads(response)
-            if j.get("error"):
-                self.logger.error("Error received after sending trade: %s", j)
-            else:
-                self.logger.debug(
-                    "Response received after sending trade: %s", j)
+            self.logResponse("trade", j)
