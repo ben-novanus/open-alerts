@@ -61,4 +61,4 @@ class Alert:
                 currentBlock = int(match_num[1])
 
     def parseAutoViewAlert(self, body):
-        self.error.error("Autoview syntax is not yet supported")
+        self.logger.error("Autoview syntax is not yet supported")

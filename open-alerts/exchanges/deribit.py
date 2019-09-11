@@ -56,11 +56,11 @@ class Deribit(Exchange):
                                                None).get("tick_size")
 
                     # get the account information
-                    # await websocket.send(self.getAccountInfoJson(
-                    #     alert.currency))
-                    # response = await websocket.recv()
-                    # j = json.loads(response)
-                    # accountInfo = j.get("result")
+                    await websocket.send(self.getAccountInfoJson(
+                        alert.currency))
+                    response = await websocket.recv()
+                    j = json.loads(response)
+                    accountInfo = j.get("result")
 
                     for block in alert.blocks:
                         if block:
@@ -85,6 +85,7 @@ class Deribit(Exchange):
                                                  "Trade")
                                 await self.trade(websocket,
                                                  ticker,
+                                                 accountInfo,
                                                  alert,
                                                  block)
 
@@ -237,11 +238,10 @@ class Deribit(Exchange):
                           position.get("size"),
                           block.side)
 
-    def getTradeJson(self, ticker, alert, block):
+    def getTradeJson(self, ticker, accountInfo, alert, block):
         method = "private/buy" if self.isBid(block.side) else "private/sell"
         params = {
-            "instrument_name": alert.instrument,
-            "amount": self.toPrecise(block.quantity, 0)
+            "instrument_name": alert.instrument
         }
 
         if block.order == "MARKET":
@@ -314,6 +314,19 @@ class Deribit(Exchange):
                                  "instead for taking profit"))
             return
 
+        if self.isPercent(block.quantity):
+            if self.isBid(block.side):
+                price = ticker.get("best_ask_price")
+            else:
+                price = ticker.get("best_bid_price")
+
+            quantity = price * self.referenceBalance(
+                accountInfo.get("available_funds"), block.quantity)
+
+            params["amount"] = self.toPrecise(quantity, 0)
+        else:
+            params["amount"] = self.toPrecise(block.quantity, 0)
+
         self.logger.debug("Trade method: %s, Params: %s", method, params)
         return self.getJsonMessage(method, params)
 
@@ -336,6 +349,9 @@ class Deribit(Exchange):
                 if j.get("error"):
                     self.logger.error(
                         "Error received after canceling order: %s", j)
+                else:
+                    self.logger.debug(
+                        "Response received after canceling order: %s", j)
 
     async def closePosition(self, websocket, ticker, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel
@@ -350,7 +366,7 @@ class Deribit(Exchange):
                                   "waiting 1 second and trying again. "
                                   "Attempt %s of 5"), str(i + 1))
                 if i == 4:
-                    self.logger.error(("Unable to close position, "
+                    self.logger.error(("Unable to execute close position, "
                                        "previous trade/order was not "
                                        "completed in time. "
                                        "5 attempts were made"))
@@ -367,6 +383,9 @@ class Deribit(Exchange):
             if j.get("error"):
                 self.logger.error(
                     "Error received after sending close position: %s", j)
+            else:
+                self.logger.debug(
+                    "Response received after sending close position: %s", j)
 
     async def trade(self, websocket, ticker, alert, block):
         tradeJson = self.getTradeJson(ticker, alert, block)
@@ -376,3 +395,6 @@ class Deribit(Exchange):
             j = json.loads(response)
             if j.get("error"):
                 self.logger.error("Error received after sending trade: %s", j)
+            else:
+                self.logger.debug(
+                    "Response received after sending trade: %s", j)

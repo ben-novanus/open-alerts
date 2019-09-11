@@ -63,10 +63,16 @@ class Exchange:
 
         if quantity.endswith("%"):
             num = quantity.strip("%")
-            return position * float(num) / 100
+            quantity = position * float(num) / 100
+
+        if abs(position) - float(quantity) > 0:
+            return float(quantity)
         else:
-            if abs(position) - float(quantity) < 0:
-                return float(position)
-            else:
-                return float(quantity)
+            return float(position)
+
+    def referenceBalance(self, balance, quantity):
+        if self.isPercent(quantity):
+            diff = float(quantity.strip("%"))
+            return balance * (diff / 100)
+        else:
             return float(quantity)
