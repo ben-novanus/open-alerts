@@ -47,5 +47,4 @@ class Block:
     trail_value = ""
     trigger = None
     trigger_price = ""
-    type = ""
     wait = ""

@@ -4,6 +4,7 @@ from .block import Block
 from .block import Type as BlockType
 from .block import OrderType
 from .block import Direction
+from .block import Trigger
 
 
 class Alert:
@@ -75,6 +76,17 @@ class Alert:
                             block.direction = Direction.BUY
                         elif val == "SELL" or val == "SHORT":
                             block.direction = Direction.SELL
+                    elif key == "trigger":
+                        if val == "INDEX":
+                            block.trigger = Trigger.INDEX
+                        elif val == "SELL":
+                            block.trigger = Trigger.SELL
+                        elif val == "MARK":
+                            block.trigger = Trigger.MARK
+                    elif (key == "close_on_trigger" or key == "post_only" or
+                          key == "reduce_only"):
+                        if val == "TRUE":
+                            setattr(block, key, True)
                     else:
                         setattr(block, key, val)
                 elif key == "account":
