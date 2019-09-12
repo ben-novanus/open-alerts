@@ -1,6 +1,9 @@
 import re
 import logging
 from .block import Block
+from .block import Type as BlockType
+from .block import OrderType
+from .block import Direction
 
 
 class Alert:
@@ -36,14 +39,44 @@ class Alert:
                 key = match[1].lower()
                 val = match[2].upper()
 
-                if key in blockFields and currentBlock > 0:
+                if ((key in blockFields and currentBlock) > 0 or
+                        key == "cancel" or key == "close" or
+                        key == "order" or key == "side"):
+                    blockIndex = currentBlock - 1
                     try:
-                        block = self.blocks[currentBlock]
+                        block = self.blocks[blockIndex]
                     except IndexError:
                         block = Block()
-                        self.blocks.insert(currentBlock, block)
+                        self.blocks.insert(blockIndex, block)
 
-                    setattr(block, key, val)
+                    if key == "cancel":
+                        block.type = BlockType.CANCEL_ORDER
+                    elif key == "close":
+                        block.type = BlockType.CLOSE_POSITION
+                    elif key == "order":
+                        if not block.type:
+                            block.type = BlockType.STANDARD_ORDER
+                        if val == "MARKET":
+                            block.orderType = OrderType.MARKET
+                        elif val == "LIMIT":
+                            block.orderType = OrderType.LIMIT
+                        elif val == "STOP_MARKET":
+                            block.orderType = OrderType.STOP_MARKET
+                        elif val == "STOP_LIMIT":
+                            block.orderType = OrderType.STOP_LIMIT
+                        elif val == "TRAILING_STOP":
+                            block.orderType = OrderType.TRAILING_STOP
+                        elif val == "TAKE_PROFIT_MARKET":
+                            block.orderType = OrderType.TAKE_PROFIT_MARKET
+                        elif val == "TAKE_PROFIT_LIMIT":
+                            block.orderType = OrderType.TAKE_PROFIT_LIMIT
+                    elif key == "side":
+                        if val == "BUY" or val == "LONG":
+                            block.direction = Direction.BUY
+                        elif val == "SELL" or val == "SHORT":
+                            block.direction = Direction.SELL
+                    else:
+                        setattr(block, key, val)
                 elif key == "account":
                     self.account = val.lower()
                 elif key == "exchange":

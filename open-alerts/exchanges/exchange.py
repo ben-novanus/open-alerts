@@ -1,13 +1,10 @@
+import logging
 import math
 
 
 class Exchange:
-
-    def isAsk(self, side):
-        return side == "SELL" or side == "SHORT"
-
-    def isBid(self, side):
-        return side == "BUY" or side == "LONG"
+    def __init__(self):
+        self.logger = logging.getLogger('main')
 
     def isPercent(self, num):
         return "%" in num

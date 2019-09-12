@@ -3,13 +3,16 @@ import asyncio
 import websockets
 import json
 import time
-import logging
 from random import randrange
+from models.block import Type as BlockType
+from models.block import OrderType
+from models.block import Direction
+from models.block import Trigger
 
 
 class Deribit(Exchange):
     def __init__(self, client_id, client_secret, test=False):
-        self.logger = logging.getLogger('main')
+        super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
         self.test = test
@@ -34,10 +37,7 @@ class Deribit(Exchange):
                 while websocket.open:
                     response = await websocket.recv()
                     j = json.loads(response)
-                    if j.get("error"):
-                        self.logger.error(
-                            ("Error received after sending authentication "
-                             "request: %s"), j)
+                    if self.isErrorResponse("authentication", j):
                         return
 
                     # get the ticker
@@ -57,7 +57,7 @@ class Deribit(Exchange):
                         return
                     ticker["tick_size"] = next((item for item in
                                                 j.get("result")
-                                                if item['instrument_name'] ==
+                                                if item["instrument_name"] ==
                                                 alert.instrument),
                                                None).get("tick_size")
 
@@ -71,26 +71,23 @@ class Deribit(Exchange):
                     accountInfo = j.get("result")
 
                     for block in alert.blocks:
-                        if block:
+                        if block and block.type:
                             if block.wait:
                                 time.sleep(int(block.wait))
 
-                            if block.cancel == "ORDER":
-                                self.logger.info("Executing Block: %s",
-                                                 "Cancel Order")
+                            self.logger.info("Executing Block: %s",
+                                             block.type.value)
+
+                            if block.type == BlockType.CANCEL_ORDER:
                                 await self.cancelOrders(websocket,
                                                         alert,
                                                         block)
-                            elif block.close == "POSITION":
-                                self.logger.info("Executing Block: %s",
-                                                 "Close Position")
+                            elif block.type == BlockType.CLOSE_POSITION:
                                 await self.closePosition(websocket,
                                                          ticker,
                                                          alert,
                                                          block)
-                            elif block.order:
-                                self.logger.info("Executing Block: %s",
-                                                 "Trade")
+                            elif block.type == BlockType.STANDARD_ORDER:
                                 await self.trade(websocket,
                                                  ticker,
                                                  accountInfo,
@@ -164,23 +161,25 @@ class Deribit(Exchange):
             self.logger.debug("No position returned")
             return
 
-        if position.get("size") and \
-            ((self.isBid(block.side) and position.get("size") > 0) or
-             (self.isAsk(block.side) and position.get("size") < 0) or
-                (not block.side and abs(position.get("size")) > 0)):
+        if (position.get("size") and
+            ((block.direction == Direction.BUY and
+              position.get("size") > 0) or
+             (block.direction == Direction.SELL and
+              position.get("size") < 0) or
+                (not block.direction and abs(position.get("size")) > 0))):
 
-            method = "private/sell" if position.get("direction") == \
-                "buy" else "private/buy"
+            method = ("private/sell" if position.get("direction") == "buy"
+                      else "private/buy")
             params = {
                 "instrument_name": position.get("instrument_name"),
                 "amount": abs(self.toPrecise(self.changeQuantity(
                     position.get("size"), block.quantity), 0))
             }
 
-            if block.order == "MARKET":
+            if block.orderType == OrderType.MARKET:
                 params["type"] = "market"
 
-            elif block.order == "LIMIT":
+            elif block.orderType == OrderType.LIMIT:
                 params["type"] = "limit"
                 params["price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
@@ -188,24 +187,24 @@ class Deribit(Exchange):
                     ticker.get("tick_size"))
                 params["reduce_only"] = True
 
-                if block.post_only == "TRUE":
+                if block.post_only:
                     params["post_only"] = True
 
-            elif block.order == "STOP_MARKET":
+            elif block.orderType == OrderType.STOP_MARKET:
                 params["type"] = "stop_market"
                 params["stop_price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
                                      block.stop_price),
                     ticker.get("tick_size"))
 
-                if block.trigger == "LAST" or not block.trigger:
+                if block.trigger == Trigger.LAST or not block.trigger:
                     params["trigger"] = "last_price"
-                elif block.trigger == "INDEX":
+                elif block.trigger == Trigger.INDEX:
                     params["trigger"] = "index_price"
-                elif block.trigger == "MARK":
+                elif block.trigger == Trigger.MARK:
                     params["trigger"] = "mark_price"
 
-            elif block.order == "STOP_LIMIT":
+            elif block.orderType == OrderType.STOP_LIMIT:
                 params["type"] = "stop_limit"
                 params["price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
@@ -216,23 +215,23 @@ class Deribit(Exchange):
                                      block.stop_price),
                     ticker.get("tick_size"))
 
-                if block.post_only == "TRUE":
+                if block.post_only:
                     params["post_only"] = True
 
-                if block.trigger == "LAST" or not block.trigger:
+                if block.trigger == Trigger.LAST or not block.trigger:
                     params["trigger"] = "last_price"
-                elif block.trigger == "INDEX":
+                elif block.trigger == Trigger.INDEX:
                     params["trigger"] = "index_price"
-                elif block.trigger == "MARK":
+                elif block.trigger == Trigger.MARK:
                     params["trigger"] = "mark_price"
 
-            elif block.order == "TAKE_PROFIT_MARKET":
+            elif block.orderType == OrderType.TAKE_PROFIT_MARKET:
                 self.logger.warning(("'take_profit_market' is not valid order "
                                      "type for Deribit, use a limit order "
                                      "instead for taking profit"))
                 return
 
-            elif block.order == "TAKE_PROFIT_LIMIT":
+            elif block.orderType == OrderType.TAKE_PROFIT_LIMIT:
                 self.logger.warning(("'take_profit_limit' is not valid order "
                                      "type for Deribit, use a limit order "
                                      "instead for taking profit"))
@@ -242,52 +241,53 @@ class Deribit(Exchange):
                               method, params)
             return self.getJsonMessage(method, params)
 
-        self.logger.debug("Not in any valid position. Size: %s, side: %s",
+        self.logger.debug("Not in any valid position. Size: %s, direction: %s",
                           position.get("size"),
-                          block.side)
+                          block.direction)
 
     def getTradeJson(self, ticker, accountInfo, alert, block):
-        method = "private/buy" if self.isBid(block.side) else "private/sell"
+        method = ("private/buy" if block.direction == Direction.BUY
+                  else "private/sell")
         params = {
             "instrument_name": alert.instrument
         }
 
-        if block.order == "MARKET":
+        if block.orderType == OrderType.MARKET:
             params["type"] = "market"
 
-        elif block.order == "LIMIT":
+        elif block.orderType == OrderType.LIMIT:
             params["type"] = "limit"
-            first = ticker.get("best_bid_price") if self.isBid(
-                block.side) else ticker.get("best_ask_price")
+            first = (ticker.get("best_bid_price") if block.direction ==
+                     Direction.BUY else ticker.get("best_ask_price"))
             params["price"] = self.toPrecise(
                 self.changePrice(first, block.limit_price),
                 ticker.get("tick_size"))
 
-            if block.post_only == "TRUE":
+            if block.post_only:
                 params["post_only"] = True
 
-            if block.reduce_only == "TRUE":
+            if block.reduce_only:
                 params["reduce_only"] = True
 
-        elif block.order == "STOP_MARKET":
+        elif block.orderType == OrderType.STOP_MARKET:
             params["type"] = "stop_market"
-            first = ticker.get("best_bid_price") if self.isAsk(
-                block.side) else ticker.get("best_ask_price")
+            first = (ticker.get("best_bid_price") if block.direction ==
+                     Direction.SELL else ticker.get("best_ask_price"))
             params["stop_price"] = self.toPrecise(
                 self.changePrice(first, block.stop_price),
                 ticker.get("tick_size"))
 
-            if block.trigger == "LAST" or not block.trigger:
+            if block.trigger == Trigger.LAST or not block.trigger:
                 params["trigger"] = "last_price"
-            elif block.trigger == "INDEX":
+            elif block.trigger == Trigger.INDEX:
                 params["trigger"] = "index_price"
-            elif block.trigger == "MARK":
+            elif block.trigger == Trigger.MARK:
                 params["trigger"] = "mark_price"
 
-        elif block.order == "STOP_LIMIT":
+        elif block.orderType == OrderType.STOP_LIMIT:
             params["type"] = "stop_limit"
-            first = ticker.get("best_bid_price") if self.isBid(
-                block.side) else ticker.get("best_ask_price")
+            first = (ticker.get("best_bid_price") if block.direction ==
+                     Direction.BUY else ticker.get("best_ask_price"))
             params["price"] = self.toPrecise(
                 self.changePrice(first, block.limit_price),
                 ticker.get("tick_size"))
@@ -295,35 +295,35 @@ class Deribit(Exchange):
                 self.changePrice(first, block.stop_price),
                 ticker.get("tick_size"))
 
-            if block.post_only == "TRUE":
+            if block.post_only:
                 params["post_only"] = True
 
-            if block.trigger == "LAST" or not block.trigger:
+            if block.trigger == Trigger.LAST or not block.trigger:
                 params["trigger"] = "last_price"
-            elif block.trigger == "INDEX":
+            elif block.trigger == Trigger.INDEX:
                 params["trigger"] = "index_price"
-            elif block.trigger == "MARK":
+            elif block.trigger == Trigger.MARK:
                 params["trigger"] = "mark_price"
 
-        elif block.order == "TRAILING_STOP":
+        elif block.orderType == OrderType.TRAILING_STOP:
             self.logger.warning(("'trailing_stop' is not "
                                  "a valid order type for Deribit"))
             return
 
-        elif block.order == "TAKE_PROFIT_MARKET":
+        elif block.orderType == OrderType.TAKE_PROFIT_MARKET:
             self.logger.warning(("'take_profit_market' is not valid order "
                                  "type for Deribit, use a limit order "
                                  "instead for taking profit"))
             return
 
-        elif block.order == "TAKE_PROFIT_LIMIT":
+        elif block.orderType == OrderType.TAKE_PROFIT_LIMIT:
             self.logger.warning(("'take_profit_limit' is not valid order "
                                  "type for Deribit, use a limit order "
                                  "instead for taking profit"))
             return
 
         if self.isPercent(block.quantity):
-            if self.isBid(block.side):
+            if block.direction == Direction.BUY:
                 price = ticker.get("best_ask_price")
             else:
                 price = ticker.get("best_bid_price")
@@ -347,11 +347,11 @@ class Deribit(Exchange):
         orders = j.get("result")
 
         for order in orders:
-            if not block.side or \
-                (self.isBid(block.side) and
-                 order.get("direction") == "buy") or \
-                    (self.isAsk(block.side) and
-                     order.get("direction") == "sell"):
+            if (not block.direction or
+                (block.direction == Direction.BUY and
+                 order.get("direction") == "buy") or
+                    (block.direction == Direction.SELL and
+                     order.get("direction") == "sell")):
                 await websocket.send(
                     self.getCancelJson(order.get("order_id")))
                 response = await websocket.recv()
@@ -367,9 +367,9 @@ class Deribit(Exchange):
             position = j.get("result")
 
             if position.get("trades") or position.get("order"):
-                self.logger.warn(("Previous trade/order not completed, "
-                                  "waiting 1 second and trying again. "
-                                  "Attempt %s of 5"), str(i + 1))
+                self.logger.warning(("Previous trade/order not completed, "
+                                     "waiting 1 second and trying again. "
+                                     "Attempt %s of 5"), i + 1)
                 if i == 4:
                     self.logger.error(("Unable to execute close position, "
                                        "previous trade/order was not "
