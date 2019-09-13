@@ -23,8 +23,8 @@ class Direction(Enum):
 
 
 class Trigger(Enum):
+    LAST = "Last"
     INDEX = "Index"
-    SELL = "Sell"
     MARK = "Mark"
 
 

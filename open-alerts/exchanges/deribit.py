@@ -240,10 +240,12 @@ class Deribit(Exchange):
             self.logger.debug("Close Position method: %s, Params: %s",
                               method, params)
             return self.getJsonMessage(method, params)
-
-        self.logger.debug("Not in any valid position. Size: %s, direction: %s",
-                          position.get("size"),
-                          block.direction)
+        else:
+            self.logger.debug(("Not in any valid position to close. "
+                               "Current position Size: %s & direction: %s"),
+                              position.get("size"),
+                              (block.direction.value if block.direction
+                               else block.direction))
 
     def getTradeJson(self, ticker, accountInfo, alert, block):
         method = ("private/buy" if block.direction == Direction.BUY

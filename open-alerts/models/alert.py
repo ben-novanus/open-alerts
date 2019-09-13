@@ -77,10 +77,10 @@ class Alert:
                         elif val == "SELL" or val == "SHORT":
                             block.direction = Direction.SELL
                     elif key == "trigger":
-                        if val == "INDEX":
+                        if val == "LAST":
+                            block.trigger = Trigger.LAST
+                        elif val == "INDEX":
                             block.trigger = Trigger.INDEX
-                        elif val == "SELL":
-                            block.trigger = Trigger.SELL
                         elif val == "MARK":
                             block.trigger = Trigger.MARK
                     elif (key == "close_on_trigger" or key == "post_only" or
