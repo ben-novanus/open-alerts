@@ -12,7 +12,7 @@ class Alert:
         self.logger = logging.getLogger("main")
         self.exchange = ""
         self.account = ""
-        self.instrument = ""
+        self.symbol = ""
         self.currency = ""
         self.blocks = []
 
@@ -42,68 +42,71 @@ class Alert:
 
                 if ((key in blockFields and currentBlock) > 0 or
                         key == "cancel" or key == "close" or
-                        key == "order" or key == "side"):
-                    blockIndex = currentBlock - 1
+                        key == "order" or key == "adjust" or
+                        key == "side"):
+                    blockIndex=currentBlock - 1
                     try:
-                        block = self.blocks[blockIndex]
+                        block=self.blocks[blockIndex]
                     except IndexError:
-                        block = Block()
+                        block=Block()
                         self.blocks.insert(blockIndex, block)
 
                     if key == "cancel":
-                        block.type = BlockType.CANCEL_ORDER
+                        block.type=BlockType.CANCEL_ORDER
                     elif key == "close":
-                        block.type = BlockType.CLOSE_POSITION
+                        block.type=BlockType.CLOSE_POSITION
+                    elif key == "adjust":
+                        block.type=BlockType.ADJUST_POSITION
                     elif key == "order":
                         if not block.type:
-                            block.type = BlockType.STANDARD_ORDER
+                            block.type=BlockType.STANDARD_ORDER
                         if val == "MARKET":
-                            block.orderType = OrderType.MARKET
+                            block.orderType=OrderType.MARKET
                         elif val == "LIMIT":
-                            block.orderType = OrderType.LIMIT
+                            block.orderType=OrderType.LIMIT
                         elif val == "STOP_MARKET":
-                            block.orderType = OrderType.STOP_MARKET
+                            block.orderType=OrderType.STOP_MARKET
                         elif val == "STOP_LIMIT":
-                            block.orderType = OrderType.STOP_LIMIT
+                            block.orderType=OrderType.STOP_LIMIT
                         elif val == "TRAILING_STOP":
-                            block.orderType = OrderType.TRAILING_STOP
+                            block.orderType=OrderType.TRAILING_STOP
                         elif val == "TAKE_PROFIT_MARKET":
-                            block.orderType = OrderType.TAKE_PROFIT_MARKET
+                            block.orderType=OrderType.TAKE_PROFIT_MARKET
                         elif val == "TAKE_PROFIT_LIMIT":
-                            block.orderType = OrderType.TAKE_PROFIT_LIMIT
+                            block.orderType=OrderType.TAKE_PROFIT_LIMIT
                     elif key == "side":
                         if val == "BUY" or val == "LONG":
-                            block.direction = Direction.BUY
+                            block.direction=Direction.BUY
                         elif val == "SELL" or val == "SHORT":
-                            block.direction = Direction.SELL
+                            block.direction=Direction.SELL
                     elif key == "trigger":
                         if val == "LAST":
-                            block.trigger = Trigger.LAST
+                            block.trigger=Trigger.LAST
                         elif val == "INDEX":
-                            block.trigger = Trigger.INDEX
+                            block.trigger=Trigger.INDEX
                         elif val == "MARK":
-                            block.trigger = Trigger.MARK
+                            block.trigger=Trigger.MARK
                     elif (key == "close_on_trigger" or key == "post_only" or
-                          key == "reduce_only"):
+                          key == "reduce_only" or key == "new_position_only"):
                         if val == "TRUE":
                             setattr(block, key, True)
                     else:
                         setattr(block, key, val)
                 elif key == "account":
-                    self.account = val.lower()
+                    self.account=val.lower()
                 elif key == "exchange":
-                    self.exchange = val.lower()
-                elif key == "instrument":
-                    self.instrument = val
-                    match = re.match('^([A-Z]{3})-.+', val)
+                    self.exchange=val.lower()
+                elif key == "symbol":
+                    self.symbol=val
+                    match=re.match('^([A-Z]{3})-?.+', val)
                     if match:
-                        self.currency = match[1]
+                        self.currency=match[1]
                     else:
                         self.logger.error(("Unable to parse currency from "
-                                           "instrument: %s"), val)
+                                           "symbol: %s"), val)
 
             elif match_num:
-                currentBlock = int(match_num[1])
+                currentBlock=int(match_num[1])
 
     def parseAutoViewAlert(self, body):
         self.logger.error("Autoview syntax is not yet supported")

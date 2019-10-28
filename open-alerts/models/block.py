@@ -5,6 +5,7 @@ class Type(Enum):
     CANCEL_ORDER = "Cancel Order"
     CLOSE_POSITION = "Close Position"
     STANDARD_ORDER = "Standard Order"
+    ADJUST_POSITION = "Adjust Position"
 
 
 class OrderType(Enum):
@@ -36,6 +37,7 @@ class Block:
     close_on_trigger = False
     leverage = ""
     limit_price = ""
+    limit_price_m = ""
     post_only = False
     price = ""
     quantity = ""
@@ -43,8 +45,12 @@ class Block:
     signal_type = ""
     stop_loss = ""
     stop_price = ""
+    stop_price_m = ""
     take_profit = ""
     trail_value = ""
     trigger = None
     trigger_price = ""
     wait = ""
+    trailing_stop = ""
+    in_profit_only = ""
+    new_position_only = False

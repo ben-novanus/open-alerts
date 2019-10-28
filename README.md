@@ -2,16 +2,17 @@
 
 This is BETA software for testing! I am not responsible for any losses incurred.
 
-This is a daemon that accepts alerts from tradingview using webhooks and sends commands to an exchange using GOAT Alerts syntax (Soon to support AutoView syntax)
+This is a daemon that accepts alerts from tradingview using webhooks and sends commands to an exchange using GOAT Alerts syntax (Soon to support AutoView syntax!)
 
 ### Requirements
 Python 3.5+
 Python websockets
+Python requests
 
 ### Setup
 Ubuntu 18.04:
 ```sh
-sudo apt-get install python3-websockets
+sudo apt-get install python3-websockets python3-requests
 ```
 
 ### nginx
@@ -41,19 +42,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_pass http://localhost:8001;
     }
-
-    location /alerts/test/ {
-        allow 52.89.214.238;
-        allow 34.212.75.30;
-        allow 54.218.53.128;
-        allow 52.32.178.7;
-        deny all;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_pass http://localhost:8002;
-    }
 }
 ```
+Set the Webhook URL to "http//example.com/alerts/" on the Trading View alert (The trailing slash is important)
 
 ### systemd
 Here is an example of a startup script
@@ -70,4 +61,31 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
+```
+
+### Exchange Permissions
+For ByBit the API key must have the following permissions
+```
+Key Permission: Active Order and Positions
+```
+For Deribit the API key must have the following permissions
+```
+account: read
+block_trade: none
+custody: none
+trade: read_write
+wallet: none
+```
+
+### Syntax
+When using GOAT or AutoView syntax you must include which symbol the alert is for. You will need to add a new line to the top section of the alert
+
+#### ByBit (btcusd, ethusd, eosusd, xrpusd)
+```
+instrument = btcusd
+```
+
+#### Deribit (btc-perpetual, eth-perpetual)
+```
+instrument = btc-perpetual
 ```

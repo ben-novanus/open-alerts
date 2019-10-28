@@ -40,30 +40,22 @@ class Deribit(Exchange):
                     if self.isErrorResponse("authentication", j):
                         return
 
-                    # get the ticker
-                    await websocket.send(self.getTickerJson(alert.instrument))
-                    response = await websocket.recv()
-                    j = json.loads(response)
-                    if self.isErrorResponse("ticker request", j):
-                        return
-                    ticker = j.get("result")
-
-                    # look up the tick size based on instrument
+                    # look up the tick size based on symbol
                     await websocket.send(self.getInstrumentsJson(
-                        alert.currency))
+                        self.currency))
                     response = await websocket.recv()
                     j = json.loads(response)
                     if self.isErrorResponse("instrument request", j):
                         return
-                    ticker["tick_size"] = next((item for item in
-                                                j.get("result")
-                                                if item["instrument_name"] ==
-                                                alert.instrument),
-                                               None).get("tick_size")
+                    precision = next((item for item in
+                                      j.get("result")
+                                      if item["instrument_name"] ==
+                                      alert.symbol),
+                                     None).get("tick_size")
 
                     # get the account information
                     await websocket.send(self.getAccountInfoJson(
-                        alert.currency))
+                        self.currency))
                     response = await websocket.recv()
                     j = json.loads(response)
                     if self.isErrorResponse("account info request", j):
@@ -73,23 +65,24 @@ class Deribit(Exchange):
                     for block in alert.blocks:
                         if block and block.type:
                             if block.wait:
+                                self.logger.info("Waiting %s seconds", block.wait)
                                 time.sleep(int(block.wait))
 
                             self.logger.info("Executing Block: %s",
                                              block.type.value)
 
                             if block.type == BlockType.CANCEL_ORDER:
-                                await self.cancelOrders(websocket,
-                                                        alert,
-                                                        block)
+                                await self.cancelOrder(websocket,
+                                                       alert,
+                                                       block)
                             elif block.type == BlockType.CLOSE_POSITION:
                                 await self.closePosition(websocket,
-                                                         ticker,
+                                                         precision,
                                                          alert,
                                                          block)
                             elif block.type == BlockType.STANDARD_ORDER:
                                 await self.trade(websocket,
-                                                 ticker,
+                                                 precision,
                                                  accountInfo,
                                                  alert,
                                                  block)
@@ -156,7 +149,7 @@ class Deribit(Exchange):
         }
         return self.getJsonMessage("private/get_position", params)
 
-    def getClosePositionJson(self, ticker, block, position):
+    def getClosePositionJson(self, precision, block, position):
         if not position:
             self.logger.debug("No position returned")
             return
@@ -184,7 +177,7 @@ class Deribit(Exchange):
                 params["price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
                                      block.limit_price),
-                    ticker.get("tick_size"))
+                    precision)
                 params["reduce_only"] = True
 
                 if block.post_only:
@@ -195,7 +188,8 @@ class Deribit(Exchange):
                 params["stop_price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
                                      block.stop_price),
-                    ticker.get("tick_size"))
+                    precision)
+                params["reduce_only"] = True
 
                 if block.trigger == Trigger.LAST or not block.trigger:
                     params["trigger"] = "last_price"
@@ -209,11 +203,11 @@ class Deribit(Exchange):
                 params["price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
                                      block.limit_price),
-                    ticker.get("tick_size"))
+                    precision)
                 params["stop_price"] = self.toPrecise(
                     self.changePrice(position.get("average_price"),
                                      block.stop_price),
-                    ticker.get("tick_size"))
+                    precision)
 
                 if block.post_only:
                     params["post_only"] = True
@@ -247,11 +241,11 @@ class Deribit(Exchange):
                               (block.direction.value if block.direction
                                else block.direction))
 
-    def getTradeJson(self, ticker, accountInfo, alert, block):
+    def getTradeJson(self, precision, ticker, accountInfo, alert, block):
         method = ("private/buy" if block.direction == Direction.BUY
                   else "private/sell")
         params = {
-            "instrument_name": alert.instrument
+            "instrument_name": alert.symbol
         }
 
         if block.orderType == OrderType.MARKET:
@@ -262,8 +256,7 @@ class Deribit(Exchange):
             first = (ticker.get("best_bid_price") if block.direction ==
                      Direction.BUY else ticker.get("best_ask_price"))
             params["price"] = self.toPrecise(
-                self.changePrice(first, block.limit_price),
-                ticker.get("tick_size"))
+                self.changePrice(first, block.limit_price), precision)
 
             if block.post_only:
                 params["post_only"] = True
@@ -276,8 +269,7 @@ class Deribit(Exchange):
             first = (ticker.get("best_bid_price") if block.direction ==
                      Direction.SELL else ticker.get("best_ask_price"))
             params["stop_price"] = self.toPrecise(
-                self.changePrice(first, block.stop_price),
-                ticker.get("tick_size"))
+                self.changePrice(first, block.stop_price), precision)
 
             if block.trigger == Trigger.LAST or not block.trigger:
                 params["trigger"] = "last_price"
@@ -291,11 +283,9 @@ class Deribit(Exchange):
             first = (ticker.get("best_bid_price") if block.direction ==
                      Direction.BUY else ticker.get("best_ask_price"))
             params["price"] = self.toPrecise(
-                self.changePrice(first, block.limit_price),
-                ticker.get("tick_size"))
+                self.changePrice(first, block.limit_price), precision)
             params["stop_price"] = self.toPrecise(
-                self.changePrice(first, block.stop_price),
-                ticker.get("tick_size"))
+                self.changePrice(first, block.stop_price), precision)
 
             if block.post_only:
                 params["post_only"] = True
@@ -340,11 +330,20 @@ class Deribit(Exchange):
         self.logger.debug("Trade method: %s, Params: %s", method, params)
         return self.getJsonMessage(method, params)
 
-    async def cancelOrders(self, websocket, alert, block):
-        await websocket.send(self.getOpenOrdersJson(alert.instrument))
+    def toPrecise(self, num, precision):
+        decimals = max(0, int(precision))
+        step = precision - decimals
+
+        if (step):
+            num = math.floor(num / step) * step
+
+        return float(("{0:." + str(decimals) + "f}").format(float(num)))
+
+    async def cancelOrder(self, websocket, alert, block):
+        await websocket.send(self.getOpenOrdersJson(alert.symbol))
         response = await websocket.recv()
         j = json.loads(response)
-        if self.isErrorResponse("open order request", j):
+        if self.isErrorResponse("get open order request", j):
             return
         orders = j.get("result")
 
@@ -360,10 +359,10 @@ class Deribit(Exchange):
                 j = json.loads(response)
                 self.logResponse("canceling order", j)
 
-    async def closePosition(self, websocket, ticker, alert, block):
+    async def closePosition(self, websocket, precision, alert, block):
         # make sure previous trade completed. retry 5 times and then cancel
         for i in range(5):
-            await websocket.send(self.getPositionJson(alert.instrument))
+            await websocket.send(self.getPositionJson(alert.symbol))
             response = await websocket.recv()
             j = json.loads(response)
             position = j.get("result")
@@ -382,15 +381,22 @@ class Deribit(Exchange):
             else:
                 break
 
-        closeJson = self.getClosePositionJson(ticker, block, position)
+        closeJson = self.getClosePositionJson(precision, block, position)
         if closeJson:
             await websocket.send(closeJson)
             response = await websocket.recv()
             j = json.loads(response)
             self.logResponse("close position", j)
 
-    async def trade(self, websocket, ticker, accountInfo, alert, block):
-        tradeJson = self.getTradeJson(ticker, accountInfo, alert, block)
+    async def trade(self, websocket, precision, accountInfo, alert, block):
+        await websocket.send(self.getTickerJson(alert.symbol))
+        response = await websocket.recv()
+        j = json.loads(response)
+        if self.isErrorResponse("ticker request", j):
+            return
+        ticker = j.get("result")
+
+        tradeJson = self.getTradeJson(precision, ticker, accountInfo, alert, block)
         if tradeJson:
             await websocket.send(tradeJson)
             response = await websocket.recv()

@@ -1,5 +1,6 @@
 import logging
 from exchanges.deribit import Deribit
+from exchanges.bybit import ByBit
 
 
 class Account:
@@ -22,8 +23,10 @@ class Account:
         elif self.type == "bitmex-test":
             self.logger.error("Exchange %s not yet implemented", self.type)
         elif self.type == "bybit":
-            self.logger.error("Exchange %s not yet implemented", self.type)
+            exchange = ByBit(self.key, self.secret)
+            exchange.processAlert(alert)
         elif self.type == "bybit-test":
-            self.logger.error("Exchange %s not yet implemented", self.type)
+            exchange = ByBit(self.key, self.secret, True)
+            exchange.processAlert(alert)
         else:
             self.logger.error("Exchange %s not valid", self.type)
