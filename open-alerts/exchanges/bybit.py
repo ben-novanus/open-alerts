@@ -12,6 +12,7 @@ from models.block import Type as BlockType
 from models.block import OrderType
 from models.block import Direction
 from models.block import Trigger
+from plugins.plugin_loader import PluginLoader
 
 
 class ByBit(Exchange):
@@ -54,6 +55,13 @@ class ByBit(Exchange):
                     elif block.type == BlockType.ADJUST_POSITION:
                         self.adjustPosition(alert,
                                             block)
+                    elif block.type == BlockType.PLUGIN:
+                        continueProcessingBlocks = PluginLoader.processPluginBlock(alert,
+                                                                      block)
+                        if not continueProcessingBlocks:
+                            self.logger.warning(
+                                "Plugin %s returned False, skipping remaining blocks for alert", block.plugin)
+                            return
 
     def getRequestResponse(self, method, resource, params):
         try:

@@ -8,6 +8,7 @@ from models.block import Type as BlockType
 from models.block import OrderType
 from models.block import Direction
 from models.block import Trigger
+from plugins.plugin_loader import PluginLoader
 
 
 class Deribit(Exchange):
@@ -65,7 +66,8 @@ class Deribit(Exchange):
                     for block in alert.blocks:
                         if block and block.type:
                             if block.wait:
-                                self.logger.info("Waiting %s seconds", block.wait)
+                                self.logger.info(
+                                    "Waiting %s seconds", block.wait)
                                 time.sleep(int(block.wait))
 
                             self.logger.info("Executing Block: %s",
@@ -86,6 +88,13 @@ class Deribit(Exchange):
                                                  accountInfo,
                                                  alert,
                                                  block)
+                            elif block.type == BlockType.PLUGIN:
+                                continueProcessingBlocks = PluginLoader.processPluginBlock(alert,
+                                                                              block)
+                                if not continueProcessingBlocks:
+                                    self.logger.warning(
+                                        "Plugin %s returned False, skipping remaining blocks for alert", block.plugin)
+                                    return
 
                     # close the websocket
                     await websocket.close()
@@ -396,7 +405,8 @@ class Deribit(Exchange):
             return
         ticker = j.get("result")
 
-        tradeJson = self.getTradeJson(precision, ticker, accountInfo, alert, block)
+        tradeJson = self.getTradeJson(
+            precision, ticker, accountInfo, alert, block)
         if tradeJson:
             await websocket.send(tradeJson)
             response = await websocket.recv()

@@ -43,7 +43,7 @@ class Alert:
                 if ((key in blockFields and currentBlock) > 0 or
                         key == "cancel" or key == "close" or
                         key == "order" or key == "adjust" or
-                        key == "side"):
+                        key == "plugin" or key == "side"):
                     blockIndex=currentBlock - 1
                     try:
                         block=self.blocks[blockIndex]
@@ -57,6 +57,9 @@ class Alert:
                         block.type=BlockType.CLOSE_POSITION
                     elif key == "adjust":
                         block.type=BlockType.ADJUST_POSITION
+                    elif key == "plugin":
+                        block.type=BlockType.PLUGIN
+                        block.plugin=val.lower()
                     elif key == "order":
                         if not block.type:
                             block.type=BlockType.STANDARD_ORDER

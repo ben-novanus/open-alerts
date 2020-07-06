@@ -6,6 +6,7 @@ class Type(Enum):
     CLOSE_POSITION = "Close Position"
     STANDARD_ORDER = "Standard Order"
     ADJUST_POSITION = "Adjust Position"
+    PLUGIN = "Plugin"
 
 
 class OrderType(Enum):
@@ -54,3 +55,7 @@ class Block:
     trailing_stop = ""
     in_profit_only = ""
     new_position_only = False
+    plugin = ""
+    action = ""
+    name = ""
+    max_days = ""
