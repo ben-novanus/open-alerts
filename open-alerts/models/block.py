@@ -59,3 +59,6 @@ class Block:
     action = ""
     name = ""
     max_days = ""
+    pt_config = ""
+    pt_license = ""
+    pt_url = ""

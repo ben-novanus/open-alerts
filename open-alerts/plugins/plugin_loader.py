@@ -1,5 +1,6 @@
 import logging
 from plugins.require_environment import RequireEnvironment
+from plugins.switch_pt_config import SwitchPtConfig
 
 
 class PluginLoader:
@@ -10,6 +11,8 @@ class PluginLoader:
 
         if block.plugin == "require-environment":
             return RequireEnvironment.processBlock(alert, block)
+        elif block.plugin == "switch-pt-config":
+            return SwitchPtConfig.processBlock(alert, block)
         else:
             logger.error("No plugin found for name: %s", block.plugin)
             return False
