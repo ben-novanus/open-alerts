@@ -11,7 +11,7 @@ class Alert:
     def __init__(self, body):
         self.logger = logging.getLogger("main")
         self.exchange = ""
-        self.account = ""
+        self.accounts = []
         self.symbol = ""
         self.currency = ""
         self.blocks = []
@@ -100,7 +100,10 @@ class Alert:
                     else:
                         setattr(block, key, val)
                 elif key == "account":
-                    self.account = val.lower()
+                    if "," in val:
+                        self.accounts = val.lower().split(",")
+                    else:
+                        self.accounts = [val.lower()]
                 elif key == "exchange":
                     self.exchange = val.lower()
                 elif key == "symbol":

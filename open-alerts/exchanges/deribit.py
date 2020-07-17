@@ -26,8 +26,6 @@ class Deribit(Exchange):
     def processAlert(self, alert):
         if not alert.blocks:
             self.logger.error("No blocks found for alert")
-        else:
-            self.logger.info("Processing alert for account: %s", alert.account)
 
         url = "wss://" + self.url + "/ws/api/v2"
 

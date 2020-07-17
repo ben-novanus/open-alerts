@@ -12,6 +12,8 @@ class Account:
         self.secret = secret
 
     def processAlert(self, alert):
+        self.logger.info("Processing %s alert: %s", self.type, self.name)
+
         if self.type == "deribit":
             exchange = Deribit(self.key, self.secret)
             exchange.processAlert(alert)

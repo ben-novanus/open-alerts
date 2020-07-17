@@ -16,7 +16,7 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.client_address[0] not in self.valid_ips:
             self.logger.warning("Unauthorized IP address: %s",
-                              self.client_address[0])
+                                self.client_address[0])
             self.send_response(401)
         else:
             length = int(self.headers.get('Content-Length', 0))
@@ -26,12 +26,13 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                 body = body[2:len(body) - 1]
 
                 alert = Alert(body)
-                if alert.account:
-                    if alert.account in self.accounts.keys():
-                        self.accounts.get(alert.account).processAlert(alert)
-                    else:
-                        self.logger.error(("Unable to find account with "
-                                           "name: %s"), alert.account)
+                if alert.accounts:
+                    for account in alert.accounts:
+                        if account in self.accounts.keys():
+                            self.accounts.get(account).processAlert(alert)
+                        else:
+                            self.logger.error(("Unable to find account with "
+                                               "name: %s"), account)
                 else:
                     self.logger.error(("Unable to parse alert "
                                        "with body: %s"), body)

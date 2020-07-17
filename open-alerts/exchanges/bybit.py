@@ -31,37 +31,36 @@ class ByBit(Exchange):
     def processAlert(self, alert):
         if not alert.blocks:
             self.logger.error("No blocks found for alert")
-        else:
-            self.logger.info("Processing alert for account: %s", alert.account)
+            return
 
-            for block in alert.blocks:
-                if block and block.type:
-                    if block.wait:
-                        self.logger.info("Waiting %s seconds", block.wait)
-                        time.sleep(int(block.wait))
+        for block in alert.blocks:
+            if block and block.type:
+                if block.wait:
+                    self.logger.info("Waiting %s seconds", block.wait)
+                    time.sleep(int(block.wait))
 
-                    self.logger.info("Executing Block: %s",
-                                     block.type.value)
+                self.logger.info("Executing Block: %s",
+                                 block.type.value)
 
-                    if block.type == BlockType.CANCEL_ORDER:
-                        self.cancelOrders(alert,
-                                          block)
-                    elif block.type == BlockType.CLOSE_POSITION:
-                        self.closePosition(alert,
-                                           block)
-                    elif block.type == BlockType.STANDARD_ORDER:
-                        self.trade(alert,
-                                   block)
-                    elif block.type == BlockType.ADJUST_POSITION:
-                        self.adjustPosition(alert,
-                                            block)
-                    elif block.type == BlockType.PLUGIN:
-                        continueProcessingBlocks = PluginLoader.processPluginBlock(alert,
-                                                                      block)
-                        if not continueProcessingBlocks:
-                            self.logger.warning(
-                                "Plugin %s returned False, skipping remaining blocks for alert", block.plugin)
-                            return
+                if block.type == BlockType.CANCEL_ORDER:
+                    self.cancelOrders(alert,
+                                      block)
+                elif block.type == BlockType.CLOSE_POSITION:
+                    self.closePosition(alert,
+                                       block)
+                elif block.type == BlockType.STANDARD_ORDER:
+                    self.trade(alert,
+                               block)
+                elif block.type == BlockType.ADJUST_POSITION:
+                    self.adjustPosition(alert,
+                                        block)
+                elif block.type == BlockType.PLUGIN:
+                    continueProcessingBlocks = PluginLoader.processPluginBlock(alert,
+                                                                               block)
+                    if not continueProcessingBlocks:
+                        self.logger.warning(
+                            "Plugin %s returned False, skipping remaining blocks for alert", block.plugin)
+                        return
 
     def getRequestResponse(self, method, resource, params):
         try:
