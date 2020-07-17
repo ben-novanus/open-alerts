@@ -16,7 +16,7 @@ sudo apt-get install python3-websockets python3-requests
 ```
 
 ### nginx
-It is recommended to use nginx with a proxy pass for open-alerts. Once this is setup up is easy to use certbot to secure the server with ssl.
+It is recommended to use nginx with a proxy pass for open-alerts. Once this is setup up it is easy to use certbot to secure the server with ssl.
 Here is an example proxy pass config:
 ```
 server {

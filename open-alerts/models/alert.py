@@ -63,7 +63,7 @@ class Alert:
                         block.type = BlockType.ADJUST_POSITION
                     elif key == "plugin":
                         block.type = BlockType.PLUGIN
-                        block.plugin = val.lower()
+                        block.plugin = val
                     elif key == "order":
                         if not block.type:
                             block.type = BlockType.STANDARD_ORDER

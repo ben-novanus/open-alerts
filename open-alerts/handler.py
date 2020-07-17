@@ -15,7 +15,7 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.client_address[0] not in self.valid_ips:
-            self.logger.debug("Unauthorized IP address: %s",
+            self.logger.warning("Unauthorized IP address: %s",
                               self.client_address[0])
             self.send_response(401)
         else:

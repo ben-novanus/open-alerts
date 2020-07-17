@@ -5,11 +5,11 @@ import os
 import time
 
 
-class RequireEnvironment:
+class Flags:
     @staticmethod
     def processBlock(alert, block):
         logger = logging.getLogger('main')
-        file_name = "environment_states.json"
+        file_name = "flags.json"
         date_time_format = "%d/%m/%Y %H:%M:%S"
         max_days = 7
 
@@ -27,12 +27,12 @@ class RequireEnvironment:
             data = {}
         except ValueError:
             logger.error(
-                "File %s does not contain valid json, reseting environments", file_name)
+                "File %s does not contain valid json, reseting flags", file_name)
             data = {}
 
         if block.action == "STORE":
             logger.debug(
-                "Storing enviroment %s with a direction of %s", block.name, block.direction.value)
+                "Storing flag %s with a direction of %s", block.name, block.direction.value)
 
             directionData = {
                 "direction": block.direction.value,
@@ -48,7 +48,7 @@ class RequireEnvironment:
         elif block.action == "REQUIRE":
             if data and data[block.name]:
                 logger.debug(
-                    "Checking for required enviroment %s with a direction of %s. Found %s direction with timestamp %s",
+                    "Checking for required flag %s with a direction of %s. Found %s direction with timestamp %s",
                     block.name, block.direction.value, data[block.name].get("direction"), data[block.name].get("timestamp"))
 
                 timestamp = datetime.strptime(
@@ -58,14 +58,14 @@ class RequireEnvironment:
                     return True
                 elif timestamp < max_time:
                     logger.error(
-                        "Check for required enviroment %s did not pass, timestamp for stored environment is to old",
+                        "Check for required flag %s did not pass, timestamp for stored flag is to old",
                         block.name)
                     return False
                 else:
                     logger.warning(
-                        "Check for required enviroment %s did not pass",
+                        "Check for required flag %s did not pass",
                         block.name)
                     return False
             else:
-                logger.debug("Environment json for %s contains no data",
+                logger.debug("Flag json for %s contains no data",
                              block.name)

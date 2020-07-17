@@ -1,5 +1,5 @@
 import logging
-from plugins.require_environment import RequireEnvironment
+from plugins.flags import Flags
 from plugins.switch_pt_config import SwitchPtConfig
 
 
@@ -9,9 +9,9 @@ class PluginLoader:
         logger = logging.getLogger('main')
         logger.info("Processing plugin block: %s", block.plugin)
 
-        if block.plugin == "require-environment":
-            return RequireEnvironment.processBlock(alert, block)
-        elif block.plugin == "switch-pt-config":
+        if block.plugin == "FLAGS":
+            return Flags.processBlock(alert, block)
+        elif block.plugin == "SWITCH-PT-CONFIG":
             return SwitchPtConfig.processBlock(alert, block)
         else:
             logger.error("No plugin found for name: %s", block.plugin)
