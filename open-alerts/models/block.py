@@ -40,7 +40,6 @@ class Block:
     limit_price = ""
     limit_price_m = ""
     post_only = False
-    price = ""
     quantity = ""
     reduce_only = False
     signal_type = ""
@@ -50,7 +49,6 @@ class Block:
     take_profit = ""
     trail_value = ""
     trigger = None
-    trigger_price = ""
     wait = ""
     trailing_stop = ""
     in_profit_only = ""

@@ -2,7 +2,7 @@
 
 This is BETA software for testing! I am not responsible for any losses incurred.
 
-This is a daemon that accepts alerts from tradingview using webhooks and sends commands to an exchange using GOAT Alerts syntax (Soon to support AutoView syntax!)
+This is a daemon that accepts alerts from TradingView using webhooks and sends commands to an exchange using GOAT Alerts syntax or AutoView syntax
 
 ### Requirements
 Python 3.5+
@@ -77,8 +77,11 @@ trade: read_write
 wallet: none
 ```
 
-### Syntax
-When using GOAT or AutoView syntax you must include which symbol the alert is for. You will need to add a new line to the top section of the alert
+### Syntax Examples
+Syntax examples can be found [here](https://github.com/draggy/open-alerts/wiki/Syntax-Examples).
+
+### Syntax Notes
+When using GOAT syntax you must include which symbol the alert is for. You will need to add a new line to the top section of the alert
 
 #### ByBit (btcusd, ethusd, eosusd, xrpusd)
 ```
@@ -88,4 +91,21 @@ instrument = btcusd
 #### Deribit (btc-perpetual, eth-perpetual)
 ```
 instrument = btc-perpetual
+```
+
+
+When using AutoView syntax you must use the same account (a=) for every line (except delay=)
+
+
+You can use multiple account names for an alert, each separated by a comma. Or you can use a wildcard to apply the alert to all accounts
+
+#### GOAT
+```
+account = account1,account2,account3
+account = *
+```
+#### AutoView
+```
+a=account1,account2,account3
+a=*
 ```

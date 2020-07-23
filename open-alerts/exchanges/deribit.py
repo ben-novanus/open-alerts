@@ -225,19 +225,6 @@ class Deribit(Exchange):
                     params["trigger"] = "index_price"
                 elif block.trigger == Trigger.MARK:
                     params["trigger"] = "mark_price"
-
-            elif block.orderType == OrderType.TAKE_PROFIT_MARKET:
-                self.logger.warning(("'take_profit_market' is not valid order "
-                                     "type for Deribit, use a limit order "
-                                     "instead for taking profit"))
-                return
-
-            elif block.orderType == OrderType.TAKE_PROFIT_LIMIT:
-                self.logger.warning(("'take_profit_limit' is not valid order "
-                                     "type for Deribit, use a limit order "
-                                     "instead for taking profit"))
-                return
-
             self.logger.debug("Close Position method: %s, Params: %s",
                               method, params)
             return self.getJsonMessage(method, params)
@@ -307,18 +294,6 @@ class Deribit(Exchange):
         elif block.orderType == OrderType.TRAILING_STOP:
             self.logger.warning(("'trailing_stop' is not "
                                  "a valid order type for Deribit"))
-            return
-
-        elif block.orderType == OrderType.TAKE_PROFIT_MARKET:
-            self.logger.warning(("'take_profit_market' is not valid order "
-                                 "type for Deribit, use a limit order "
-                                 "instead for taking profit"))
-            return
-
-        elif block.orderType == OrderType.TAKE_PROFIT_LIMIT:
-            self.logger.warning(("'take_profit_limit' is not valid order "
-                                 "type for Deribit, use a limit order "
-                                 "instead for taking profit"))
             return
 
         if self.isPercent(block.quantity):

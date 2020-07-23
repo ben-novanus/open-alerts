@@ -21,7 +21,7 @@ class Alert:
     def parseBody(self, body):
         if "account =" in body or "account=" in body:
             self.parseGoatAlert(body)
-        elif "a =" in body or "a=" in body:
+        elif "a=" in body or "delay=" in body:
             self.parseAutoViewAlert(body)
 
     def parseGoatAlert(self, body):
@@ -114,9 +114,122 @@ class Alert:
                     else:
                         self.logger.error(("Unable to parse currency from "
                                            "symbol: %s"), val)
-
             elif match_num:
                 currentBlock = int(match_num[1])
 
     def parseAutoViewAlert(self, body):
-        self.logger.error("Autoview syntax is not yet supported")
+        lines = body.split('\\n')
+
+        blockFields = ["b", "c", "delay", "l", "p", "pxs", "q",
+                       "ro", "sl", "t", "tp", "ts"]
+
+        for line in lines:
+            commands = line.lower().split()
+            block = Block()
+            commandDict = {}
+            for command in commands:
+                match = re.match('([a-zA-Z_]+)=([^\n]+)', command)
+
+                if match:
+                    commandDict[match[1]] = match[2].upper()
+                else:
+                    self.logger.error(("Unknown command: %s"), command)
+
+            for key, val in commandDict.items():
+                if key in blockFields:
+                    if key == "delay":
+                        block.wait = val
+                    elif key == "t":
+                        if not block.type:
+                            block.type = BlockType.STANDARD_ORDER
+
+                        if not block.orderType:
+                            if val == "MARKET":
+                                block.orderType = OrderType.MARKET
+                            elif val == "LIMIT":
+                                block.orderType = OrderType.LIMIT
+                            elif val == "FOK":
+                                self.logger.error(("Fill or Kill is not currently a "
+                                                   "valid order type"))
+                            elif val == "IOC":
+                                self.logger.error(("Immediate or Cancel is not currently a "
+                                                   "valid order type"))
+                            elif val == "POST":
+                                block.orderType = OrderType.LIMIT
+                                block.post_only = True
+                    elif key == "c":
+                        if val == "ORDER":
+                            block.type = BlockType.CANCEL_ORDER
+                        elif val == "POSITION":
+                            # if line containsts this is an adjust
+                            if commandDict.get("ts"):
+                                block.type = BlockType.ADJUST_POSITION
+                            else:
+                                block.type = BlockType.CLOSE_POSITION
+                    elif key == "b":
+                        if not block.direction:
+                            if val == "BUY" or val == "LONG":
+                                block.direction = Direction.BUY
+                            elif val == "SELL" or val == "SHORT":
+                                block.direction = Direction.SELL
+                    elif key == "pxs":
+                        if val == "LAST":
+                            block.trigger = Trigger.LAST
+                        elif val == "INDEX":
+                            block.trigger = Trigger.INDEX
+                        elif val == "MARK":
+                            block.trigger = Trigger.MARK
+                    elif key == "ro" and val == "1":
+                        block.reduce_only = True
+                    elif key == "sl":
+                        # block.stop_loss = val
+                        block.orderType = OrderType.STOP_MARKET
+                        if commandDict.get("ps") == "position":
+                            block.stop_price = val
+                        else:
+                            block.stop_price_m = val
+                        block.post_only = True
+                        block.reduce_only = True
+                    elif key == "tp":
+                        # block.take_profit = val
+                        block.orderType = OrderType.STOP_LIMIT
+                        block.limit_price_m = val
+                        if commandDict.get("p"):
+                            if commandDict.get("ps") and commandDict.get("p").lower() == "position":
+                                block.stop_price = commandDict.get("p")
+                            else:
+                                block.stop_price_m = commandDict.get("p")
+                        if not commandDict.get("q"):
+                            block.quantity = "100%"
+                        # Hack because for AV syntax your take profit direction is backwards
+                        if commandDict.get("b"):
+                            if commandDict.get("b") == "BUY" or commandDict.get("b") == "LONG":
+                                block.direction = Direction.SELL
+                            elif commandDict.get("b") == "SELL" or commandDict.get("b") == "SHORT":
+                                block.direction = Direction.BUY
+                        block.post_only = True
+                        block.reduce_only = True
+                    elif key == "ts":
+                        block.trailing_stop = val
+                    elif key == "l":
+                        block.leverage = val
+                    elif key == "q":
+                        block.quantity = val
+                    elif key == "p":
+                        block.limit_price = val
+                elif key == "a":
+                    if "," in val:
+                        self.accounts = val.lower().split(",")
+                    else:
+                        self.accounts = [val.lower()]
+                elif key == "e":
+                    self.exchange = val.lower()
+                elif key == "s":
+                    self.symbol = val
+                    match = re.match('^([A-Z]{3})-?.+', val)
+                    if match:
+                        self.currency = match[1]
+                    else:
+                        self.logger.error(("Unable to parse currency from "
+                                           "symbol: %s"), val)
+            self.blocks.append(block)
