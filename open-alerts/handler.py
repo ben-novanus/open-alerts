@@ -19,8 +19,13 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                                 self.client_address[0])
             self.send_response(401)
         else:
+            self.logger.debug("Received alert from IP address: %s",
+                              self.client_address[0])
+
             length = int(self.headers.get('Content-Length', 0))
             body = str(self.rfile.read(length))
+
+            self.logger.debug("Body of alert: %s", body)
 
             if body.startswith('b\'', 0, 2) and body.endswith('\''):
                 body = body[2:len(body) - 1]
