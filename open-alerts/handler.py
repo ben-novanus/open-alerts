@@ -22,6 +22,8 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
             self.logger.debug("Received alert from IP address: %s",
                               self.client_address[0])
 
+            self.send_response(200)
+
             length = int(self.headers.get('Content-Length', 0))
             body = str(self.rfile.read(length))
 
@@ -45,7 +47,5 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
                 else:
                     self.logger.error(("Unable to parse alert "
                                        "with body: %s"), body)
-
-                # self.send_response(200)
             else:
                 self.logger.error("Invalid alert body received: %s", body)
