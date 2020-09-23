@@ -37,12 +37,12 @@ class Alert:
                 match_num = re.match('\[(\d)\]', line)
 
             if match:
-                key = match[1].lower()
+                key = match.group(1).lower()
 
                 if key.startswith("pt_"):
-                    val = match[2]
+                    val = match.group(2)
                 else:
-                    val = match[2].upper()
+                    val = match.group(2).upper()
 
                 if ((key in blockFields and currentBlock) > 0 or
                         key == "cancel" or key == "close" or
@@ -110,12 +110,12 @@ class Alert:
                     self.symbol = val
                     match = re.match('^([A-Z]{3})-?.+', val)
                     if match:
-                        self.currency = match[1]
+                        self.currency = match.group(1)
                     else:
                         self.logger.error(("Unable to parse currency from "
                                            "symbol: %s"), val)
             elif match_num:
-                currentBlock = int(match_num[1])
+                currentBlock = int(match_num.group(1))
 
     def parseAutoViewAlert(self, body):
         lines = body.split('\\n')
@@ -131,7 +131,7 @@ class Alert:
                 match = re.match('([a-zA-Z_]+)=([^\n]+)', command)
 
                 if match:
-                    commandDict[match[1]] = match[2].upper()
+                    commandDict[match.group(1)] = match.group(2).upper()
                 else:
                     self.logger.error(("Unknown command: %s"), command)
 
@@ -228,7 +228,7 @@ class Alert:
                     self.symbol = val
                     match = re.match('^([A-Z]{3})-?.+', val)
                     if match:
-                        self.currency = match[1]
+                        self.currency = match.group(1)
                     else:
                         self.logger.error(("Unable to parse currency from "
                                            "symbol: %s"), val)

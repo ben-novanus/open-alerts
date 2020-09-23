@@ -12,17 +12,20 @@ class AlertRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.send_response(404)
+        self.end_headers()
 
     def do_POST(self):
         if self.client_address[0] not in self.valid_ips:
             self.logger.warning("Unauthorized IP address: %s",
                                 self.client_address[0])
             self.send_response(401)
+            self.end_headers()
         else:
             self.logger.debug("Received alert from IP address: %s",
                               self.client_address[0])
 
             self.send_response(200)
+            self.end_headers()
 
             length = int(self.headers.get('Content-Length', 0))
             body = str(self.rfile.read(length))

@@ -18,6 +18,7 @@ class TimeZoneFormatter(logging.Formatter):
     def converter(self, timestamp):
         dt = datetime.fromtimestamp(timestamp)
         tz = timezone(self.timezone)
+        dt = tz.localize(dt)
         return dt.astimezone(tz)
 
     def formatTime(self, record, datefmt=None):
