@@ -122,10 +122,10 @@ class ByBit(Exchange):
             return
 
     def getActiveOrders(self, params, filter):
-        return self.getOrders(params, filter, "/open-api/order/list")
+        return self.getOrders(params, filter, "/v2/private/order/list")
 
     def getConditionalOrders(self, params, filter):
-        return self.getOrders(params, filter, "/open-api/stop-order/list")
+        return self.getOrders(params, filter, "/v2/private/stop-order/list")
 
     def getOrders(self, params, filter, resource):
         self.logger.debug(
@@ -205,7 +205,7 @@ class ByBit(Exchange):
                 resource = "/v2/private/order/cancel"
                 params["order_id"] = order.get("order_id")
             else:
-                resource = "/open-api/stop-order/cancel"
+                resource = "/v2/private/stop-order/cancel"
                 params["stop_order_id"] = order.get("stop_order_id")
 
             self.logger.debug(
@@ -330,7 +330,7 @@ class ByBit(Exchange):
                 params["time_in_force"] = "PostOnly"
 
         if block.orderType == OrderType.STOP_MARKET or block.orderType == OrderType.STOP_LIMIT:
-            resource = "/open-api/stop-order/create"
+            resource = "/v2/private/stop-order/create"
         else:
             resource = "/v2/private/order/create"
         self.logger.debug(
@@ -476,7 +476,7 @@ class ByBit(Exchange):
             j = self.setLeverage(alert.symbol, block.leverage)
 
         if block.orderType == OrderType.STOP_MARKET or block.orderType == OrderType.STOP_LIMIT:
-            resource = "/open-api/stop-order/create"
+            resource = "/v2/private/stop-order/create"
         else:
             resource = "/v2/private/order/create"
         self.logger.debug("Trade, Resource: %s, Params: %s", resource, params)
@@ -548,7 +548,7 @@ class ByBit(Exchange):
         self.logger.info("Setting leverage to %s for %s",
                          block.leverage, alert.symbol)
 
-        resource = "/user/leverage/save"
+        resource = "/v2/private/position/leverage/save"
         params = {
             "symbol": symbol,
             "leverage": leverage
